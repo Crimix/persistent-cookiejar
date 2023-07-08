@@ -5,6 +5,9 @@
 package cookiejar
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -100,7 +103,11 @@ func (j *Jar) load() error {
 
 // mergeFrom reads all the cookies from r and stores them in the Jar.
 func (j *Jar) mergeFrom(r io.Reader) error {
-	decoder := json.NewDecoder(r)
+	reader, err := getPossibleEncryptedReader(j, r)
+	if err != nil {
+		return err
+	}
+	decoder := json.NewDecoder(reader)
 	// Cope with old cookiejar format by just discarding
 	// cookies, but still return an error if it's invalid JSON.
 	var data json.RawMessage
@@ -120,15 +127,60 @@ func (j *Jar) mergeFrom(r io.Reader) error {
 	return nil
 }
 
+func getPossibleEncryptedReader(j *Jar, r io.Reader) (io.Reader, error) {
+
+	if j.key == "" {
+		return r, nil
+	}
+
+	key, err := hex.DecodeString(j.key)
+	if err != nil {
+		return r, err
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return r, err
+	}
+
+	var iv [aes.BlockSize]byte
+	stream := cipher.NewOFB(block, iv[:])
+	reader := &cipher.StreamReader{S: stream, R: r}
+	return reader, nil
+}
+
 // writeTo writes all the cookies in the jar to w
 // as a JSON array.
 func (j *Jar) writeTo(w io.Writer) error {
-	encoder := json.NewEncoder(w)
+	writer, err := getPossibleEncryptedWriter(j, w)
+	if err != nil {
+		return err
+	}
+	encoder := json.NewEncoder(writer)
 	entries := j.allEntriesToPersist()
 	if err := encoder.Encode(entries); err != nil {
 		return err
 	}
 	return nil
+}
+
+func getPossibleEncryptedWriter(j *Jar, w io.Writer) (io.Writer, error) {
+	if j.key == "" {
+		return w, nil
+	}
+
+	key, err := hex.DecodeString(j.key)
+	if err != nil {
+		return w, err
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return w, err
+	}
+
+	var iv [aes.BlockSize]byte
+	stream := cipher.NewOFB(block, iv[:])
+	writer := &cipher.StreamWriter{S: stream, W: w}
+	return writer, nil
 }
 
 // allEntriesToPersist returns all the entries in the jar, sorted by primarly by canonical host
