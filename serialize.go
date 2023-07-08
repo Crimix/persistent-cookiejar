@@ -9,6 +9,7 @@ import (
 	"crypto/cipher"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"io"
 	"log"
 	"os"
@@ -131,7 +132,12 @@ func getPossibleEncryptedReader(j *Jar, r io.Reader) (io.Reader, error) {
 		return r, nil
 	}
 
-	block, err := aes.NewCipher([]byte(j.key))
+	key, err := bcrypt.GenerateFromPassword([]byte(j.key), bcrypt.DefaultCost)
+	if err != nil {
+		return r, err
+	}
+
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return r, err
 	}
@@ -162,7 +168,12 @@ func getPossibleEncryptedWriter(j *Jar, w io.Writer) (io.Writer, error) {
 		return w, nil
 	}
 
-	block, err := aes.NewCipher([]byte(j.key))
+	key, err := bcrypt.GenerateFromPassword([]byte(j.key), bcrypt.DefaultCost)
+	if err != nil {
+		return w, err
+	}
+
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return w, err
 	}
