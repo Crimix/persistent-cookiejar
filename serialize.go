@@ -9,7 +9,7 @@ import (
 	"crypto/cipher"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/scrypt"
 	"io"
 	"log"
 	"os"
@@ -128,11 +128,11 @@ func (j *Jar) mergeFrom(r io.Reader) error {
 }
 
 func getPossibleEncryptedReader(j *Jar, r io.Reader) (io.Reader, error) {
-	if j.key == "" {
+	if j.key == "" || len(j.salt) == 0 {
 		return r, nil
 	}
 
-	key, err := bcrypt.GenerateFromPassword([]byte(j.key), bcrypt.DefaultCost)
+	key, err := scrypt.Key([]byte(j.key), j.salt, 32768, 8, 1, 32)
 	if err != nil {
 		return r, err
 	}
@@ -164,11 +164,11 @@ func (j *Jar) writeTo(w io.Writer) error {
 }
 
 func getPossibleEncryptedWriter(j *Jar, w io.Writer) (io.Writer, error) {
-	if j.key == "" {
+	if j.key == "" || len(j.salt) == 0 {
 		return w, nil
 	}
 
-	key, err := bcrypt.GenerateFromPassword([]byte(j.key), bcrypt.DefaultCost)
+	key, err := scrypt.Key([]byte(j.key), j.salt, 32768, 8, 1, 32)
 	if err != nil {
 		return w, err
 	}

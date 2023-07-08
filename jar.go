@@ -67,7 +67,8 @@ type Options struct {
 	// If it is empty, the value of DefaultCookieFile will be used.
 	Filename string
 
-	Key string
+	Key  string
+	Salt []byte
 
 	// NoPersist specifies whether no persistence should be used
 	// (useful for tests). If this is true, the value of Filename will be
@@ -87,7 +88,8 @@ type Jar struct {
 	// filename holds the file that the cookies were loaded from.
 	filename string
 
-	key string
+	key  string
+	salt []byte
 
 	psList PublicSuffixList
 
@@ -134,6 +136,7 @@ func newAtTime(o *Options, now time.Time) (*Jar, error) {
 			jar.filename = DefaultCookieFile()
 		}
 		jar.key = o.Key
+		jar.salt = o.Salt
 		if err := jar.load(); err != nil {
 			return nil, fmt.Errorf("cannot load cookies: %w", err)
 		}
