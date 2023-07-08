@@ -67,6 +67,8 @@ type Options struct {
 	// If it is empty, the value of DefaultCookieFile will be used.
 	Filename string
 
+	Key string
+
 	// NoPersist specifies whether no persistence should be used
 	// (useful for tests). If this is true, the value of Filename will be
 	// ignored.
@@ -131,6 +133,7 @@ func newAtTime(o *Options, now time.Time) (*Jar, error) {
 		if jar.filename = o.Filename; jar.filename == "" {
 			jar.filename = DefaultCookieFile()
 		}
+		jar.key = o.Key
 		if err := jar.load(); err != nil {
 			return nil, fmt.Errorf("cannot load cookies: %w", err)
 		}
