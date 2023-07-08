@@ -7,7 +7,6 @@ package cookiejar
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -128,16 +127,11 @@ func (j *Jar) mergeFrom(r io.Reader) error {
 }
 
 func getPossibleEncryptedReader(j *Jar, r io.Reader) (io.Reader, error) {
-
 	if j.key == "" {
 		return r, nil
 	}
 
-	key, err := hex.DecodeString(j.key)
-	if err != nil {
-		return r, err
-	}
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher([]byte(j.key))
 	if err != nil {
 		return r, err
 	}
@@ -168,11 +162,7 @@ func getPossibleEncryptedWriter(j *Jar, w io.Writer) (io.Writer, error) {
 		return w, nil
 	}
 
-	key, err := hex.DecodeString(j.key)
-	if err != nil {
-		return w, err
-	}
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher([]byte(j.key))
 	if err != nil {
 		return w, err
 	}
